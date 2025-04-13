@@ -6,7 +6,7 @@ This website allows you to track your fitness with different loggers like Workou
 
 There is a customized Settings modal that allows you to change your page settings and preferred units as it also updates the different loggers as you're logged in.
 
-This website was hosted under GitHub, you can go to the site by clicking the following link.
+This website is hosted by GitHub, you can navigate to the site by clicking the following URL.
 
 https://jjnguyenn.github.io/gymapp/
 
