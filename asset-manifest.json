@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/gymapp/static/css/main.bba45d73.css",
-    "main.js": "/gymapp/static/js/main.36519eb4.js",
+    "main.js": "/gymapp/static/js/main.4c0c19e5.js",
     "static/js/435.db8a1b20.chunk.js": "/gymapp/static/js/435.db8a1b20.chunk.js",
     "static/js/28.271c1fe2.chunk.js": "/gymapp/static/js/28.271c1fe2.chunk.js",
     "static/js/816.1d9c04cc.chunk.js": "/gymapp/static/js/816.1d9c04cc.chunk.js",
@@ -10,14 +10,14 @@
     "static/js/664.2def104d.chunk.js": "/gymapp/static/js/664.2def104d.chunk.js",
     "static/js/901.30912cc1.chunk.js": "/gymapp/static/js/901.30912cc1.chunk.js",
     "static/js/272.41f2de54.chunk.js": "/gymapp/static/js/272.41f2de54.chunk.js",
-    "static/js/93.84ee163d.chunk.js": "/gymapp/static/js/93.84ee163d.chunk.js",
+    "static/js/93.559c8233.chunk.js": "/gymapp/static/js/93.559c8233.chunk.js",
     "static/js/453.b5beb6f1.chunk.js": "/gymapp/static/js/453.b5beb6f1.chunk.js",
     "static/js/499.46d6e20f.chunk.js": "/gymapp/static/js/499.46d6e20f.chunk.js",
     "static/js/285.91db5537.chunk.js": "/gymapp/static/js/285.91db5537.chunk.js",
     "static/js/204.1b994649.chunk.js": "/gymapp/static/js/204.1b994649.chunk.js",
     "index.html": "/gymapp/index.html",
     "main.bba45d73.css.map": "/gymapp/static/css/main.bba45d73.css.map",
-    "main.36519eb4.js.map": "/gymapp/static/js/main.36519eb4.js.map",
+    "main.4c0c19e5.js.map": "/gymapp/static/js/main.4c0c19e5.js.map",
     "435.db8a1b20.chunk.js.map": "/gymapp/static/js/435.db8a1b20.chunk.js.map",
     "28.271c1fe2.chunk.js.map": "/gymapp/static/js/28.271c1fe2.chunk.js.map",
     "816.1d9c04cc.chunk.js.map": "/gymapp/static/js/816.1d9c04cc.chunk.js.map",
@@ -26,7 +26,7 @@
     "664.2def104d.chunk.js.map": "/gymapp/static/js/664.2def104d.chunk.js.map",
     "901.30912cc1.chunk.js.map": "/gymapp/static/js/901.30912cc1.chunk.js.map",
     "272.41f2de54.chunk.js.map": "/gymapp/static/js/272.41f2de54.chunk.js.map",
-    "93.84ee163d.chunk.js.map": "/gymapp/static/js/93.84ee163d.chunk.js.map",
+    "93.559c8233.chunk.js.map": "/gymapp/static/js/93.559c8233.chunk.js.map",
     "453.b5beb6f1.chunk.js.map": "/gymapp/static/js/453.b5beb6f1.chunk.js.map",
     "499.46d6e20f.chunk.js.map": "/gymapp/static/js/499.46d6e20f.chunk.js.map",
     "285.91db5537.chunk.js.map": "/gymapp/static/js/285.91db5537.chunk.js.map",
@@ -34,6 +34,6 @@
   },
   "entrypoints": [
     "static/css/main.bba45d73.css",
-    "static/js/main.36519eb4.js"
+    "static/js/main.4c0c19e5.js"
   ]
 }
