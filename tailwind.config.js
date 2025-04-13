@@ -1,8 +1,7 @@
-// tailwind.config.js
 module.exports = {
-  darkMode: "class", // Enable class-based dark mode
+  darkMode: "class", 
   content: [
-    './src/**/*.{js,jsx,ts,tsx}', // Include all your JSX/TSX files for purging unused styles
+    './src/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
     extend: {},

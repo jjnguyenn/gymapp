@@ -2,7 +2,7 @@
   "name": "gym-buddy",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://jjnguyenn.github.io/gymapp",
+  "homepage": "https://yourusername.github.io/gymapp",
   "dependencies": {
     "@auth0/auth0-react": "^2.3.0",
     "@fullcalendar/daygrid": "^6.1.17",

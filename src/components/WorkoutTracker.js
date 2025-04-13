@@ -24,16 +24,38 @@ function WorkoutTracker() {
   const [workoutLog, setWorkoutLog] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Load from localStorage
+  const loadLocalWorkouts = () => {
+    try {
+      const stored = localStorage.getItem("localWorkouts");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Save to localStorage
+  const saveLocalWorkouts = (workouts) => {
+    localStorage.setItem("localWorkouts", JSON.stringify(workouts));
+  };
+
   useEffect(() => {
     const fetchWorkoutLog = async () => {
-      if (!isAuthenticated || !user) return;
-
       setLoading(true);
       try {
-        const q = query(collection(db, "workouts"), where("userId", "==", user.sub), orderBy("timestamp", "desc"));
-        const querySnapshot = await getDocs(q);
-        const fetchedWorkouts = querySnapshot.docs.map((doc) => doc.data());
-        setWorkoutLog(fetchedWorkouts);
+        let firebaseWorkouts = [];
+        if (isAuthenticated && user) {
+          const q = query(
+            collection(db, "workouts"),
+            where("userId", "==", user.sub),
+            orderBy("timestamp", "desc")
+          );
+          const querySnapshot = await getDocs(q);
+          firebaseWorkouts = querySnapshot.docs.map((doc) => doc.data());
+        }
+
+        const localWorkouts = loadLocalWorkouts();
+        setWorkoutLog([...firebaseWorkouts, ...localWorkouts]);
       } catch (error) {
         console.error("Error fetching workouts: ", error);
         alert("There was an error fetching your workouts. Please try again.");
@@ -47,7 +69,6 @@ function WorkoutTracker() {
         try {
           const settingsRef = doc(db, "settings", user.sub);
           const settingsSnap = await getDoc(settingsRef);
-
           if (settingsSnap.exists()) {
             const settingsData = settingsSnap.data();
             setWeightUnit(settingsData.unit || "kg");
@@ -65,7 +86,8 @@ function WorkoutTracker() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const finalExercise = exercise === "Other" ? customExercise.trim() : exercise;
+    const finalExercise =
+      exercise === "Other" ? customExercise.trim() : exercise;
 
     if (!finalExercise || !sets || !reps || !weight) return;
 
@@ -82,13 +104,16 @@ function WorkoutTracker() {
     if (isAuthenticated && user) {
       try {
         await addDoc(collection(db, "workouts"), workoutData);
-        setWorkoutLog((prev) => [...prev, workoutData]);
       } catch (error) {
         console.error("Error saving workout:", error);
         alert("There was an error saving your workout. Please try again.");
       }
+    } else {
+      const updatedLocal = [workoutData, ...loadLocalWorkouts()];
+      saveLocalWorkouts(updatedLocal);
     }
 
+    setWorkoutLog((prev) => [workoutData, ...prev]);
     setExercise("");
     setCustomExercise("");
     setSets("");
@@ -105,149 +130,145 @@ function WorkoutTracker() {
   };
 
   const handleClearAll = async () => {
-    const confirmClear = window.confirm("Are you sure you want to delete all workout logs?");
-    if (!confirmClear || !user) return;
+    const confirmClear = window.confirm(
+      "Are you sure you want to delete all workout logs?"
+    );
+    if (!confirmClear) return;
 
     try {
-      const q = query(collection(db, "workouts"), where("userId", "==", user.sub));
-      const querySnapshot = await getDocs(q);
+      if (isAuthenticated && user) {
+        const q = query(
+          collection(db, "workouts"),
+          where("userId", "==", user.sub)
+        );
+        const querySnapshot = await getDocs(q);
 
-      const deletePromises = querySnapshot.docs.map((workoutDoc) => deleteDoc(doc(db, "workouts", workoutDoc.id)));
-      await Promise.all(deletePromises);
+        const deletePromises = querySnapshot.docs.map((workoutDoc) =>
+          deleteDoc(doc(db, "workouts", workoutDoc.id))
+        );
+        await Promise.all(deletePromises);
+      }
 
+      localStorage.removeItem("localWorkouts");
       setWorkoutLog([]);
     } catch (error) {
-      console.error("Error deleting workout logs:", error);
-      alert("Error deleting workout logs.");
+      console.error("Error deleting workouts:", error);
+      alert("Error deleting workouts.");
     }
   };
 
-  if (isLoading) return <p className="text-center text-gray-500">Checking authentication...</p>;
+  if (isLoading)
+    return <p className="text-center text-gray-500">Checking authentication</p>;
 
   return (
     <div className="max-w-2xl mx-auto p-4">
       <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl shadow-lg p-6 transition-all">
         {!isAuthenticated && (
-          <p className="text-yellow-600 mb-4 font-semibold text-center">
-            You are not logged in. Workouts will not be saved after you close this tab.
-          </p>
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-md">
+            <p className="font-semibold">You are not logged in.</p>
+            <p className="text-sm">
+              Your workouts will be saved locally but not to the cloud.
+            </p>
+          </div>
         )}
-
-        <h2 className="text-2xl font-bold text-teal-600 mb-4 text-center">Workout Logger</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="exercise" className="block font-medium text-teal-600 mb-1">Exercise</label>
+            <label className="block font-medium mb-1">Exercise</label>
             <select
-              id="exercise"
-              className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
               value={exercise}
               onChange={(e) => setExercise(e.target.value)}
-              required
+              className="w-full border rounded-md p-2 bg-white dark:bg-gray-800"
             >
-              <option value="" disabled>Select an exercise...</option>
-              <option value="Bench">Bench</option>
+              <option value="">Select Exercise</option>
+              <option value="Bench Press">Bench Press</option>
               <option value="Squat">Squat</option>
               <option value="Deadlift">Deadlift</option>
               <option value="Other">Other</option>
             </select>
           </div>
-
           {exercise === "Other" && (
             <div>
-              <label htmlFor="customExercise" className="block font-medium text-teal-600 mb-1">Custom Exercise</label>
+              <label className="block font-medium mb-1">Custom Exercise</label>
               <input
-                id="customExercise"
                 type="text"
-                className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
                 value={customExercise}
                 onChange={(e) => setCustomExercise(e.target.value)}
-                placeholder="Enter exercise name"
-                required
+                className="w-full border rounded-md p-2 bg-white dark:bg-gray-800"
               />
             </div>
           )}
-
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="sets" className="block font-medium text-teal-600 mb-1">Sets</label>
+              <label className="block font-medium mb-1">Sets</label>
               <input
-                id="sets"
                 type="number"
-                min="1"
-                className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
                 value={sets}
                 onChange={(e) => setSets(e.target.value)}
-                required
+                className="w-full border rounded-md p-2 bg-white dark:bg-gray-800"
               />
             </div>
-
             <div>
-              <label htmlFor="reps" className="block font-medium text-teal-600 mb-1">Reps</label>
+              <label className="block font-medium mb-1">Reps</label>
               <input
-                id="reps"
                 type="number"
-                min="1"
-                className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="weight" className="block font-medium text-teal-600 mb-1">Weight ({weightUnit})</label>
-              <input
-                id="weight"
-                type="number"
-                min="1"
-                className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                required
+                className="w-full border rounded-md p-2 bg-white dark:bg-gray-800"
               />
             </div>
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-md transition-all"
-          >
-            Save Workout
-          </button>
+          <div>
+            <label className="block font-medium mb-1">Weight ({weightUnit})</label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="w-full border rounded-md p-2 bg-white dark:bg-gray-800"
+            />
+          </div>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Add Workout
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ml-auto"
+            >
+              Clear All
+            </button>
+          </div>
         </form>
 
-        <button
-          onClick={handleReset}
-          className="w-full mt-4 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-md transition-all"
-        >
-          Reset
-        </button>
+        <hr className="my-6 border-gray-300 dark:border-gray-600" />
 
-        {workoutLog.length > 0 && (
-          <button
-            onClick={handleClearAll}
-            className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-all"
-          >
-            Clear All Logs
-          </button>
-        )}
-      </div>
-
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold text-teal-600 mb-4">Workout Log</h3>
-        {loading ? (
-          <p className="text-center text-teal-600">Loading...</p>
-        ) : workoutLog.length === 0 ? (
-          <p className="text-gray-500">No workouts logged yet!</p>
+        <h2 className="text-xl font-semibold mb-4">Workout Log</h2>
+        {workoutLog.length === 0 ? (
+          <p className="text-gray-500">No workouts logged yet.</p>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-2">
             {workoutLog.map((entry, index) => (
-              <li key={index} className="bg-gray-100 p-4 rounded-lg shadow-md">
-                <p className="text-teal-700 font-semibold">{entry.exercise}</p>
-                <p className="text-teal-500">Sets: {entry.sets} | Reps: {entry.reps}</p>
-                <p className="text-teal-500">Weight: {entry.weight} {entry.weightUnit}</p>
-                <p className="text-sm text-gray-500 mt-1">
+              <li
+                key={index}
+                className="p-4 border rounded-md bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
+              >
+                <p className="font-medium text-lg">{entry.exercise}</p>
+                <p className="text-sm">
+                  {entry.sets} sets × {entry.reps} reps @ {entry.weight}
+                  {entry.weightUnit}
+                </p>
+                <p className="text-xs text-gray-500">
                   {new Date(entry.timestamp).toLocaleString()}
                 </p>
               </li>
