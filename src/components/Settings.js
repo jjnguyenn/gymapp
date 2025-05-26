@@ -7,22 +7,36 @@ function Settings() {
   const { user, isAuthenticated } = useAuth0();
   const [darkMode, setDarkMode] = useState(false);
   const [unit, setUnit] = useState("lbs");
-  const [heightUnit, setHeightUnit] = useState("cm"); 
-  const [notification, setNotification] = useState({
-    message: "",
-    type: "", 
-  });
+  const [heightUnit, setHeightUnit] = useState("ft-in");
+  const [notification, setNotification] = useState({ message: "", type: "" });
 
+  // Load settings from localStorage or Firebase
   useEffect(() => {
+    const localSettings = localStorage.getItem("gymapp_settings");
+    if (localSettings) {
+      const parsed = JSON.parse(localSettings);
+      setDarkMode(parsed.darkMode ?? false);
+      setUnit(parsed.unit ?? "lbs");
+      setHeightUnit(parsed.heightUnit ?? "cm");
+    }
+
+    // If user is logged in, load from Firebase
     if (isAuthenticated && user) {
       const loadSettings = async () => {
-        const docRef = doc(db, "settings", user.sub);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setDarkMode(data.darkMode ?? false);
-          setUnit(data.unit ?? "lbs");
-          setHeightUnit(data.heightUnit ?? "cm"); 
+        try {
+          const docRef = doc(db, "settings", user.sub);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setDarkMode(data.darkMode ?? false);
+            setUnit(data.unit ?? "lbs");
+            setHeightUnit(data.heightUnit ?? "cm");
+
+            // Also save to localStorage for fallback
+            localStorage.setItem("gymapp_settings", JSON.stringify(data));
+          }
+        } catch (error) {
+          console.error("Error loading settings from Firestore:", error);
         }
       };
 
@@ -31,39 +45,35 @@ function Settings() {
   }, [isAuthenticated, user]);
 
   const saveSettings = async () => {
-    if (!user) return;
-
     const settingsData = {
       darkMode,
       unit,
-      heightUnit, 
+      heightUnit,
     };
 
-    try {
-      await setDoc(doc(db, "settings", user.sub), settingsData, { merge: true });
-      setNotification({
-        message: "Settings saved successfully!",
-        type: "success",
-      });
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      setNotification({
-        message: "Error saving settings.",
-        type: "error",
-      });
+    // Save to localStorage
+    localStorage.setItem("gymapp_settings", JSON.stringify(settingsData));
+    
+    // Save to Firebase if authenticated
+    if (isAuthenticated && user) {
+      try {
+        await setDoc(doc(db, "settings", user.sub), settingsData, { merge: true });
+        setNotification({ message: "Settings saved successfully!", type: "success" });
+      } catch (error) {
+        console.error("Error saving settings:", error);
+        setNotification({ message: "Error saving settings.", type: "error" });
+      }
+    } else {
+      setNotification({ message: "Settings saved locally only.", type: "success" });
     }
   };
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mt-8 space-y-6">
-
-
       {notification.message && (
         <div
           className={`${
-            notification.type === "success"
-              ? "bg-green-500"
-              : "bg-red-500"
+            notification.type === "success" ? "bg-green-500" : "bg-red-500"
           } text-white p-4 rounded-lg mb-6`}
         >
           {notification.message}
@@ -89,7 +99,7 @@ function Settings() {
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
           className="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
-          >
+        >
           <option value="lbs">Pounds (lbs)</option>
           <option value="kg">Kilograms (kg)</option>
         </select>
@@ -102,13 +112,12 @@ function Settings() {
           value={heightUnit}
           onChange={(e) => setHeightUnit(e.target.value)}
           className="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
-          >
+        >
           <option value="cm">Centimeters (cm)</option>
           <option value="ft-in">Feet (ft)</option>
         </select>
       </div>
 
-      
       <button
         onClick={saveSettings}
         className="w-full bg-teal-600 text-white p-2 rounded"

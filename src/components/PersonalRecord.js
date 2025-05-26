@@ -19,14 +19,18 @@ function PersonalRecord() {
   const [reps, setReps] = useState("");
   const [records, setRecords] = useState([]);
 
-  // Load saved records when the user is authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      loadRecords();
+      loadRecordsFromFirestore();
+    } else {
+      const savedRecords = localStorage.getItem("personalRecords");
+      if (savedRecords) {
+        setRecords(JSON.parse(savedRecords));
+      }
     }
   }, [isAuthenticated, user]);
 
-  const loadRecords = async () => {
+  const loadRecordsFromFirestore = async () => {
     const recordsRef = collection(db, "personal_records");
     const q = query(recordsRef, where("userId", "==", user.sub), orderBy("timestamp", "desc"));
     const querySnapshot = await getDocs(q);
@@ -39,51 +43,60 @@ function PersonalRecord() {
     setRecords(fetchedRecords);
   };
 
-  // Save a new record to Firestore
   const saveRecord = async () => {
-    if (!user) return;
+    const newRecord = {
+      exercise,
+      weight,
+      reps,
+      timestamp: new Date()
+    };
 
-    try {
-      const docRef = await addDoc(collection(db, "personal_records"), {
-        userId: user.sub,
-        exercise,
-        weight,
-        reps,
-        timestamp: new Date(),
-      });
+    if (isAuthenticated && user) {
+      try {
+        const docRef = await addDoc(collection(db, "personal_records"), {
+          ...newRecord,
+          userId: user.sub
+        });
 
-      console.log("Document written with ID: ", docRef.id);
-
-      setExercise("");
-      setWeight("");
-      setReps("");
-
-      setRecords((prev) => [
-        { id: docRef.id, exercise, weight, reps, timestamp: new Date() },
-        ...prev,
-      ]);
-    } catch (error) {
-      console.error("Error saving record:", error);
-      alert("Error saving record.");
+        setRecords((prev) => [
+          { id: docRef.id, ...newRecord },
+          ...prev
+        ]);
+      } catch (error) {
+        console.error("Error saving record:", error);
+        alert("Error saving record.");
+      }
+    } else {
+      const localRecords = [{ id: Date.now(), ...newRecord }, ...records];
+      setRecords(localRecords);
+      localStorage.setItem("personalRecords", JSON.stringify(localRecords));
     }
+
+    setExercise("");
+    setWeight("");
+    setReps("");
   };
 
-  // Delete all records for the user
   const clearAllRecords = async () => {
     const confirmClear = window.confirm("Are you sure you want to delete all personal records?");
-    if (!confirmClear || !user) return;
+    if (!confirmClear) return;
 
-    try {
-      const q = query(collection(db, "personal_records"), where("userId", "==", user.sub));
-      const querySnapshot = await getDocs(q);
+    if (isAuthenticated && user) {
+      try {
+        const q = query(collection(db, "personal_records"), where("userId", "==", user.sub));
+        const querySnapshot = await getDocs(q);
 
-      const deletePromises = querySnapshot.docs.map((recordDoc) => deleteDoc(doc(db, "personal_records", recordDoc.id)));
-      await Promise.all(deletePromises);
+        const deletePromises = querySnapshot.docs.map((recordDoc) => deleteDoc(doc(db, "personal_records", recordDoc.id)));
+        await Promise.all(deletePromises);
 
+        setRecords([]);
+      } catch (error) {
+        console.error("Error deleting records:", error);
+        alert("Error deleting records.");
+      }
+    } else {
+      localStorage.removeItem("personalRecords");
       setRecords([]);
-    } catch (error) {
-      console.error("Error deleting records:", error);
-      alert("Error deleting records.");
     }
   };
 
@@ -91,8 +104,16 @@ function PersonalRecord() {
     <div className="max-w-xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mt-8 space-y-6">
       <h2 className="text-2xl font-bold text-teal-600">Personal Record</h2>
 
-      {/* Record Form */}
       <div className="space-y-4">
+             <div>
+        {!isAuthenticated && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-md">
+            <p className="font-semibold">You are not logged in.</p>
+            <p className="text-sm">
+              Your workouts will be saved locally but not to the cloud.
+            </p>
+          </div>
+        )}
         <div>
           <label className="text-teal-700 block mb-1">Exercise</label>
           <input
@@ -139,7 +160,6 @@ function PersonalRecord() {
         </button>
       </div>
 
-      {/* Saved Records */}
       <div>
         <div className="flex justify-between items-center">
           <h3 className="text-xl font-semibold text-teal-600">Saved Records</h3>
@@ -174,6 +194,7 @@ function PersonalRecord() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }

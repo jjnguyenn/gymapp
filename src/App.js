@@ -4,6 +4,15 @@ import { doc, getDoc } from "firebase/firestore";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import db from "./Firebase";
 
+import {
+  Dumbbell,
+  BarChart,
+  Flame,
+  Calendar,
+  Settings as SettingsIcon,
+  Trophy,
+} from "lucide-react";
+
 const Settings = React.lazy(() => import("./components/Settings"));
 const Modal = React.lazy(() => import("./components/Modal"));
 const WorkoutTracker = React.lazy(() => import("./components/WorkoutTracker"));
@@ -64,25 +73,20 @@ function App() {
   return (
     <div className={`min-h-screen ${darkMode ? "dark" : ""} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
       <Router>
+
         <nav className="bg-teal-600 p-4 text-white">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             <Link to="/" className="flex items-center text-white text-2xl font-bold hover:text-teal-200">
-              <span className="mr-2">🏋️</span> 💅
+              <span className="mr-2">Gym Buddy</span> 
             </Link>
-            <div className="lg:hidden">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="text-white focus:outline-none">
-                {menuOpen ? "✖️" : "☰"}
-              </button>
-            </div>
+           
             <ul className="hidden lg:flex space-x-6">
               <li><Link to="/workouts" className="hover:text-teal-200">Workouts</Link></li>
               <li><Link to="/progress" className="hover:text-teal-200">Progress</Link></li>
               <li><Link to="/personal-record" className="hover:text-teal-200">Personal Record</Link></li>
               <li><Link to="/calories" className="hover:text-teal-200">Calories</Link></li>
               <li><Link to="/schedule" className="hover:text-teal-200">Schedule</Link></li>
-              <li>
-                <button onClick={() => setIsSettingsModalOpen(true)} className="hover:text-teal-200">Settings</button>
-              </li>
+              <li><button onClick={() => setIsSettingsModalOpen(true)} className="hover:text-teal-200">Settings</button></li>
             </ul>
             <div className="hidden lg:flex items-center space-x-4">
               <Suspense fallback={<div>Loading</div>}>
@@ -127,7 +131,8 @@ function App() {
           )}
         </nav>
 
-        <main className="p-6">
+        {/* Main Content */}
+        <main className="p-6 pb-24">
           <Suspense fallback={<div>Loading</div>}>
             <Modal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)}>
               <Settings />
@@ -135,7 +140,7 @@ function App() {
           </Suspense>
 
           <Routes>
-            <Route path="/" element={isAuthenticated ? <UserProfile /> : <p>Please log in to see your profile.</p>} />
+            <Route path="/" element={<UserProfile />} />
             <Route path="/workouts" element={<Suspense fallback={<div>Loading</div>}><WorkoutTracker userSettings={userSettings} /></Suspense>} />
             <Route path="/progress" element={<Suspense fallback={<div>Loading</div>}><ProgressTracker /></Suspense>} />
             <Route path="/personal-record" element={<Suspense fallback={<div>Loading</div>}><PersonalRecord /></Suspense>} />
@@ -143,6 +148,39 @@ function App() {
             <Route path="/schedule" element={<Suspense fallback={<div>Loading</div>}><Schedule /></Suspense>} />
           </Routes>
         </main>
+
+
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-teal-600 text-white border-t border-gray-200 dark:border-gray-700 shadow-lg lg:hidden">
+          <div className="flex justify-around items-center py-2">
+            <Link to="/workouts" className="flex flex-col items-center text-sm hover:text-teal-200">
+              <Dumbbell className="w-6 h-6" />
+              <span>Workouts</span>
+            </Link>
+            <Link to="/progress" className="flex flex-col items-center text-sm hover:text-teal-200">
+              <BarChart className="w-6 h-6" />
+              <span>Progress</span>
+            </Link>
+            <Link to="/personal-record" className="flex flex-col items-center text-sm hover:text-teal-200">
+              <Trophy className="w-6 h-6" />
+              <span>Records</span>
+            </Link>
+            <Link to="/calories" className="flex flex-col items-center text-sm hover:text-teal-200">
+              <Flame className="w-6 h-6" />
+              <span>Calories</span>
+            </Link>
+            <Link to="/schedule" className="flex flex-col items-center text-sm hover:text-teal-200">
+              <Calendar className="w-6 h-6" />
+              <span>Schedule</span>
+            </Link>
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex flex-col items-center text-sm hover:text-teal-200"
+            >
+              <SettingsIcon className="w-6 h-6" />
+              <span>Settings</span>
+            </button>
+          </div>
+        </div>
       </Router>
     </div>
   );

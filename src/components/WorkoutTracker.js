@@ -24,7 +24,7 @@ function WorkoutTracker() {
   const [workoutLog, setWorkoutLog] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load from localStorage
+
   const loadLocalWorkouts = () => {
     try {
       const stored = localStorage.getItem("localWorkouts");
@@ -34,58 +34,62 @@ function WorkoutTracker() {
     }
   };
 
-  // Save to localStorage
   const saveLocalWorkouts = (workouts) => {
     localStorage.setItem("localWorkouts", JSON.stringify(workouts));
   };
 
-  useEffect(() => {
-    const fetchWorkoutLog = async () => {
-      setLoading(true);
+  const fetchSettings = async () => {
+    const localSettings = localStorage.getItem("gymapp_settings");
+    if (localSettings) {
+      const parsed = JSON.parse(localSettings);
+      setWeightUnit(parsed.unit || "kg");
+    }
+
+    if (isAuthenticated && user) {
       try {
-        let firebaseWorkouts = [];
-        if (isAuthenticated && user) {
-          const q = query(
-            collection(db, "workouts"),
-            where("userId", "==", user.sub),
-            orderBy("timestamp", "desc")
-          );
-          const querySnapshot = await getDocs(q);
-          firebaseWorkouts = querySnapshot.docs.map((doc) => doc.data());
+        const settingsRef = doc(db, "settings", user.sub);
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+          const settingsData = settingsSnap.data();
+          setWeightUnit(settingsData.unit || "kg");
         }
-
-        const localWorkouts = loadLocalWorkouts();
-        setWorkoutLog([...firebaseWorkouts, ...localWorkouts]);
       } catch (error) {
-        console.error("Error fetching workouts: ", error);
-        alert("There was an error fetching your workouts. Please try again.");
-      } finally {
-        setLoading(false);
+        console.error("Error fetching user settings:", error);
       }
-    };
+    }
+  };
 
-    const fetchSettings = async () => {
+  const fetchWorkoutLog = async () => {
+    setLoading(true);
+    try {
+      let firebaseWorkouts = [];
       if (isAuthenticated && user) {
-        try {
-          const settingsRef = doc(db, "settings", user.sub);
-          const settingsSnap = await getDoc(settingsRef);
-          if (settingsSnap.exists()) {
-            const settingsData = settingsSnap.data();
-            setWeightUnit(settingsData.unit || "kg");
-          }
-        } catch (error) {
-          console.error("Error fetching user settings:", error);
-        }
+        const q = query(
+          collection(db, "workouts"),
+          where("userId", "==", user.sub),
+          orderBy("timestamp", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        firebaseWorkouts = querySnapshot.docs.map((doc) => doc.data());
       }
-    };
 
+      const localWorkouts = loadLocalWorkouts();
+      setWorkoutLog([...firebaseWorkouts, ...localWorkouts]);
+    } catch (error) {
+      console.error("Error fetching workouts: ", error);
+      alert("There was an error fetching your workouts. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchWorkoutLog();
     fetchSettings();
   }, [isAuthenticated, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const finalExercise =
       exercise === "Other" ? customExercise.trim() : exercise;
 
@@ -142,9 +146,8 @@ function WorkoutTracker() {
           where("userId", "==", user.sub)
         );
         const querySnapshot = await getDocs(q);
-
-        const deletePromises = querySnapshot.docs.map((workoutDoc) =>
-          deleteDoc(doc(db, "workouts", workoutDoc.id))
+        const deletePromises = querySnapshot.docs.map((docSnap) =>
+          deleteDoc(doc(db, "workouts", docSnap.id))
         );
         await Promise.all(deletePromises);
       }
@@ -158,7 +161,7 @@ function WorkoutTracker() {
   };
 
   if (isLoading)
-    return <p className="text-center text-gray-500">Checking authentication</p>;
+    return <p className="text-center text-gray-500">Checking authentication...</p>;
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -187,6 +190,7 @@ function WorkoutTracker() {
               <option value="Other">Other</option>
             </select>
           </div>
+
           {exercise === "Other" && (
             <div>
               <label className="block font-medium mb-1">Custom Exercise</label>
@@ -198,6 +202,7 @@ function WorkoutTracker() {
               />
             </div>
           )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block font-medium mb-1">Sets</label>
@@ -218,8 +223,11 @@ function WorkoutTracker() {
               />
             </div>
           </div>
+
           <div>
-            <label className="block font-medium mb-1">Weight ({weightUnit})</label>
+            <label className="block font-medium mb-1">
+              Weight ({weightUnit})
+            </label>
             <input
               type="number"
               value={weight}
@@ -227,6 +235,7 @@ function WorkoutTracker() {
               className="w-full border rounded-md p-2 bg-white dark:bg-gray-800"
             />
           </div>
+
           <div className="flex gap-4">
             <button
               type="submit"
